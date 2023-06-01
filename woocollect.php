@@ -134,6 +134,7 @@ function collection_time_booking_add_meta_box($checkout)
     $selected_date = '';
     $selected_time = '';
 
+    $time_slots[''] = "Select Collection Time";//anuj
     // Generate time slots based on the opening hours
     for ($time = $start_time; $time < $end_time; $time += $minimum_interval) {
         $time_slots[date('H:i', $time)] = date('h:i A', $time);
@@ -161,7 +162,7 @@ function collection_time_booking_add_meta_box($checkout)
         'collection_time',
         array(
             'type' => 'select',
-            'class' => array('form-row-wide'),
+            'class' => array('form-row-wide'),            
             'label' => __('Collection Time'),
             'options' => $time_slots,
             'required' => true,
@@ -320,10 +321,11 @@ wp_enqueue_script('jquery-ui-timepicker-addon', 'https://cdnjs.cloudflare.com/aj
 wp_enqueue_style('jquery-ui-timepicker-css', 'https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-timepicker-addon/1.6.3/jquery-ui-timepicker-addon.min.css');
 
 // Enqueue custom JavaScript for initializing date and time pickers
-wp_enqueue_script('collection-time-booking-script', plugin_dir_url(__FILE__) . 'js/collection-time-booking.js', array('jquery-ui-datepicker', 'jquery-ui-timepicker-addon'), '1.0', true);
+wp_enqueue_script('collection-time-booking-script', plugin_dir_url(__FILE__) . 'js/collection-time-booking.js', array('jquery-ui-datepicker', 'jquery-ui-timepicker-addon'),'1.14', true);
 
 // Localize script with the collection time options
 $collection_time_options = array(
+    'curdate' => date("Y-m-d"),   //anuj
     'timeFormat' => get_option('time_format', 'g:i A'),
     'minDate' => 0, // Minimum date is today
     'minTime' => date('H:i', strtotime('+2 hours')), // Minimum time is 2 hours from now
