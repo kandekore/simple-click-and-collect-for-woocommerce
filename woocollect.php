@@ -1,10 +1,10 @@
 <?php 
 /*
-Plugin Name: Woo Collect
+Plugin Name: Simple Click & Collect for WooCommerce
 Description: Collection time plugin for WooCommerce orders
-Version: 1.0
+Version: 2.0.0
 Author: Darren Kandekore
-Author URI: tbc
+Author URI: https://darrenk.uk
 */
 
 // Plugin Activation and Deactivation
@@ -33,30 +33,87 @@ function collection_time_booking_activate()
     update_option('collection_time_booking_opening_hours', $default_opening_hours);
 }
 
-function collection_time_booking_deactivate()
-{
-    // Perform any cleanup tasks upon deactivation
-    // ...
-}
-
 // Add admin settings page
-add_action('admin_menu', 'collection_time_booking_admin_menu');
+add_action('admin_menu', 'add_custom_admin_menu');
 
-function collection_time_booking_admin_menu()
-{
+function add_custom_admin_menu() {
     add_menu_page(
-        'Collection Time Settings',
-        'Collection Time',
-        'manage_options',
-        'collection-time-settings',
-        'collection_time_booking_settings_page',
-        'dashicons-clock',
+        'Woo Click & Collect', 
+        'Woo Click & Collect', 
+        'manage_options', 
+        'woo-click-collect', 
+        'display_main_menu_content', 
+        'dashicons-cart', 
         30
+    );
+    
+    add_submenu_page(
+        'woo-click-collect', 
+        'Booking Window', 
+        'Booking Window', 
+        'manage_options', 
+        'booking-window', 
+        'display_booking_window'
+    );
+
+    add_submenu_page(
+        'woo-click-collect', 
+        'Collection Time', 
+        'Collection Time', 
+        'manage_options', 
+        'collection-time-settings', 
+        'display_collection_time_settings'
     );
 }
 
+// Main menu page content
+function display_main_menu_content() {
+    // Display content for the main menu page here
+    echo '<div class="wrap">';
+    echo '<h1>Main Menu Page Content</h1>';
+    echo '</div>';
+}
+
+// Booking Window admin settings page
+function display_booking_window() {
+    // check user capabilities
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    
+    // Update 'booking_window_hours' if form submitted
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        update_option('booking_window_hours', $_POST['booking_window_hours']);
+    }
+
+    $booking_window_hours = get_option('booking_window_hours', 2);  // set default value as 2
+    ?>
+    <div class="wrap">
+        <h1><?= esc_html(get_admin_page_title()); ?></h1>
+        <form action="options.php" method="post">
+            <?php
+            settings_fields('booking_window_settings');
+            do_settings_sections('booking_window_settings');
+            ?>
+            <table class="form-table" role="presentation">
+                <tbody>
+                <tr>
+                    <th scope="row"><label for="minimum_hours">Minimum Hours in Advance:</label></th>
+                    <td><input name="booking_window_hours" type="number" id="minimum_hours" value="<?= $booking_window_hours ?>" class="regular-text"></td>
+                </tr>
+                </tbody>
+            </table>
+            <?php
+            submit_button('Save Changes');
+            ?>
+        </form>
+    </div>
+    <?php
+}
+
+
 // Admin settings page
-function collection_time_booking_settings_page()
+function display_collection_time_settings()
 {
     // Save settings if form submitted
     if (isset($_POST['collection_time_booking_submit'])) {
@@ -136,9 +193,12 @@ function collection_time_booking_add_meta_box($checkout)
 
     $time_slots[''] = "Select Collection Time";//anuj
     // Generate time slots based on the opening hours
-    for ($time = $start_time; $time < $end_time; $time += $minimum_interval) {
-        $time_slots[date('H:i', $time)] = date('h:i A', $time);
-    }
+    
+    //anuj
+    // for ($time = $start_time; $time < $end_time; $time += $minimum_interval) {
+    //     $time_slots[date('H:i', $time)] = date('h:i A', $time);
+    // }
+    //anuj
 
     echo '<div id="collection-time-box">';
     woocommerce_form_field(
@@ -170,6 +230,10 @@ function collection_time_booking_add_meta_box($checkout)
         $selected_time
     );
     echo '</div>';
+
+    // Set the session variables
+    WC()->session->set('selected_collection_date', $selected_date);
+    WC()->session->set('selected_collection_time', $selected_time);
 }
 
 // Validate collection date and time before placing the order
@@ -184,21 +248,15 @@ function collection_time_booking_validate_collection_datetime()
     } else {
         $selected_date = sanitize_text_field($_POST['collection_date']);
         $selected_time = sanitize_text_field($_POST['collection_time']);
-        $opening_hours = get_option('collection_time_booking_opening_hours', array());
+        $booking_window_hours = get_option('booking_window_hours', 2); // Get booking window hours from settings, default to 2 if not set
         $selected_datetime = strtotime($selected_date . ' ' . $selected_time);
-        $minimum_interval = 2 * 60 * 60;
+        $minimum_interval = $booking_window_hours * 60 * 60;
         $current_datetime = strtotime('now');
-        
+
         // Calculate the minimum allowed collection datetime
         $minimum_collection_datetime = $current_datetime + $minimum_interval;
-        
-        // Validate collection time
-        if ($selected_datetime < $minimum_collection_datetime) {
-            wc_add_notice(__('Please select a collection time that is at least 2 hours into the future.'), 'error');
-        } else {
-            WC()->session->set('selected_collection_date', $selected_date);
-            WC()->session->set('selected_collection_time', $selected_time);
-        }
+
+       
     }
 }
 
@@ -208,15 +266,37 @@ add_action('woocommerce_checkout_create_order', 'collection_time_booking_save_co
 
 function collection_time_booking_save_collection_datetime($order)
 {
-    if (WC()->session->get('selected_collection_date') && WC()->session->get('selected_collection_time')) {
-        $collection_date = WC()->session->get('selected_collection_date');
-        $collection_time = WC()->session->get('selected_collection_time');
-        $collection_datetime = strtotime($collection_date . ' ' . $collection_time);
+    $collection_date = isset($_POST['collection_date']) ? sanitize_text_field($_POST['collection_date']) : '';
+    $collection_time = isset($_POST['collection_time']) ? sanitize_text_field($_POST['collection_time']) : '';
+    $collection_datetime = strtotime($collection_date . ' ' . $collection_time);
+
+    if (!empty($collection_date)) {
         $order->update_meta_data('Collection Date', $collection_date);
+    }
+
+    if (!empty($collection_time)) {
         $order->update_meta_data('Collection Time', $collection_time);
-        $order->update_meta_data('Collection DateTime', $collection_datetime);
+    }
+
+    if (!empty($collection_datetime)) {
+        $order->set_date_created(date('Y-m-d H:i:s', $collection_datetime));
+        $order->update_meta_data('_collection_datetime', $collection_datetime);
     }
 }
+
+
+/*** Anuj  */
+
+function  collection_time_booking_order_email( $fields ) {
+    $fields['Collection Date'] = __('Collection Date', 'your-domain');
+    $fields['Collection Time'] = __('Collection Time', 'your-domain');
+    return $fields;
+}
+add_filter( 'woocommerce_email_order_meta_fields', 'collection_time_booking_order_email' );
+
+/*** Anuj  */
+
+
 
 // Display the selected collection date and time in the admin order page
 add_action('woocommerce_admin_order_data_after_billing_address', 'collection_time_booking_display_admin_order_meta', 10, 1);
@@ -225,11 +305,18 @@ function collection_time_booking_display_admin_order_meta($order)
 {
     $collection_date = $order->get_meta('Collection Date');
     $collection_time = $order->get_meta('Collection Time');
-    if (!empty($collection_date) && !empty($collection_time)) {
-        $collection_datetime = date('Y-m-d H:i', $order->get_meta('Collection DateTime'));
+    $collection_datetime = $order->get_meta('Collection DateTime');
+    
+    if (!empty($collection_date)) {
         echo '<p><strong>Collection Date:</strong> ' . esc_html($collection_date) . '</p>';
+    }
+
+    if (!empty($collection_time)) {
         echo '<p><strong>Collection Time:</strong> ' . esc_html($collection_time) . '</p>';
-        echo '<p><strong>Collection DateTime:</strong> ' . esc_html($collection_datetime) . '</p>';
+    }
+
+    if (!empty($collection_datetime)) {
+        echo '<p><strong>Collection DateTime:</strong> ' . esc_html(date('l jS F H:i', $collection_datetime)) . '</p>';
     }
 }
 
@@ -251,61 +338,64 @@ function collection_time_booking_add_collection_datetime_to_email($order, $sent_
 // Add custom dashboard widget
 add_action('wp_dashboard_setup', 'collection_time_booking_add_dashboard_widget');
 
-function collection_time_booking_add_dashboard_widget()
-{
+// Add admin dashboard widget
+add_action( 'wp_dashboard_setup', 'collection_time_booking_dashboard_widget' );
+
+function collection_time_booking_dashboard_widget() {
     wp_add_dashboard_widget(
-        'collection_time_booking_widget',
-        'Upcoming Collections',
-        'collection_time_booking_dashboard_widget_content'
+        'future_collection_orders_widget',  // Widget slug
+        'Future Collection Orders',         // Title
+        'display_future_collection_orders'  // Display function
     );
 }
 
-// Custom dashboard widget content
-function collection_time_booking_dashboard_widget_content()
-{
-    // Get upcoming collection times from custom post type
-    $collection_times = get_posts(array(
-        'post_type' => 'collection-time',
-        'meta_key' => 'Collection Time',
-        'meta_value' => date('Y-m-d'),
-        'meta_compare' => '>=',
-        'orderby' => 'meta_value',
-        'order' => 'ASC',
-        'posts_per_page' => -1
-    ));
-
+function display_future_collection_orders() {
+    // Get current date and time
+    $current_datetime = current_time('mysql');
+    
     // Get upcoming collections from orders
     $orders = wc_get_orders(array(
-        'meta_key' => 'Collection DateTime',
-        'meta_value' => date('Y-m-d H:i:s'),
-        'meta_compare' => '>=',
+        'meta_query' => array(
+            'relation' => 'AND',
+            array(
+                'key' => 'Collection Date',
+                'value' => date("Y-m-d"),
+                'compare' => '>=',
+                'type' => 'DATE',
+            ),
+        ),
+        'meta_key' => 'Collection Date',
         'orderby' => 'meta_value',
         'order' => 'ASC',
-        'status' => 'wc-completed',
-        'limit' => -1
+        'status' => 'any', // changed from 'wc-completed'
+        'limit' => -1,
     ));
 
-    // Combine collection times and orders into a single array
-    $upcoming_collections = array_merge($collection_times, $orders);
-
     // Display upcoming collections
-    if (!empty($upcoming_collections)) {
+    if (!empty($orders)) {
         echo '<ul>';
-        foreach ($upcoming_collections as $collection) {
-            $collection_datetime = '';
-            if ($collection->post_type === 'collection-time') {
-                $collection_datetime = get_post_meta($collection->ID, 'Collection Time', true);
-            } elseif ($collection->get_meta('Collection DateTime')) {
-                $collection_datetime = $collection->get_meta('Collection DateTime');
-            }
+        foreach ($orders as $order) {
             
-            echo '<li>' . esc_html($collection_datetime) . '</li>';
+            $collection_date = $order->get_meta('Collection Date');            
+
+            if($collection_date!='' && date("Ymd",strtotime($collection_date)) >=date("Ymd")){    
+            
+                //anuj
+                $collection_time = $order->get_meta('Collection Time');
+                $formatted_date = date_i18n('l jS F ', strtotime($collection_date));
+                //anuj
+
+                $customer_name = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
+                $order_link = admin_url('post.php?post=' . $order->get_id() . '&action=edit');
+                echo '<li><strong>' . esc_html($customer_name) . '</strong> - ' . esc_html($formatted_date) . ' '.$collection_time.' - <a href="' . esc_url($order_link) . '">View Order</a></li>';
+            }
         }
         echo '</ul>';
     } else {
         echo '<p>No upcoming collections found.</p>';
     }
 }
+
 
 // Enqueue jQuery UI
 wp_enqueue_script('jquery-ui-core');
@@ -321,14 +411,16 @@ wp_enqueue_script('jquery-ui-timepicker-addon', 'https://cdnjs.cloudflare.com/aj
 wp_enqueue_style('jquery-ui-timepicker-css', 'https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-timepicker-addon/1.6.3/jquery-ui-timepicker-addon.min.css');
 
 // Enqueue custom JavaScript for initializing date and time pickers
-wp_enqueue_script('collection-time-booking-script', plugin_dir_url(__FILE__) . 'js/collection-time-booking.js', array('jquery-ui-datepicker', 'jquery-ui-timepicker-addon'),'1.14', true);
+wp_enqueue_script('collection-time-booking-script', plugin_dir_url(__FILE__) . 'js/collection-time-booking.js', array('jquery-ui-datepicker', 'jquery-ui-timepicker-addon'),'1.16', true);//
 
 // Localize script with the collection time options
+$booking_window_hours = get_option('booking_window_hours', 2); // Get booking window hours from settings, default to 2 if not set
+
 $collection_time_options = array(
-    'curdate' => date("Y-m-d"),   //anuj
+    'curdate' => date("Y-m-d"),
     'timeFormat' => get_option('time_format', 'g:i A'),
     'minDate' => 0, // Minimum date is today
-    'minTime' => date('H:i', strtotime('+2 hours')), // Minimum time is 2 hours from now
+    'minTime' => date('H:i', strtotime('+' . $booking_window_hours . ' hours')), // Minimum time is 'booking_window_hours' hours from now
     'maxTime' => '' // Placeholder for the maximum time based on opening hours
 );
 $opening_hours = get_option('collection_time_booking_opening_hours', array());
@@ -336,3 +428,15 @@ if (!empty($opening_hours)) {
     $collection_time_options['openingHours'] = $opening_hours;
 }
 wp_localize_script('collection-time-booking-script', 'collectionTimeOptions', $collection_time_options);
+
+add_action('admin_init', 'register_booking_window_settings');
+
+function register_booking_window_settings() {
+    register_setting('booking_window_settings', 'booking_window_hours');
+}
+
+function register_collection_time_settings() {
+    register_setting('collection_time_settings', 'booking_window_hours');
+    register_setting('collection_time_booking_settings', 'collection_time_booking_opening_hours');
+}
+add_action('admin_init', 'register_collection_time_settings');
