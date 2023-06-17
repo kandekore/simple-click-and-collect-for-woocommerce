@@ -20,7 +20,7 @@ function collection_time_booking_activate()
     if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_option('active_plugins')))) {
         // WooCommerce is not active, display an error message and deactivate the plugin
         deactivate_plugins(plugin_basename(__FILE__));
-        wp_die('Sorry, but this plugin requires WooCommerce to be installed and activated.');
+        wp_die(__('Sorry, but this plugin requires WooCommerce to be installed and activated.', 'collection-time-booking'));
     }
 
     // Add default opening hours
@@ -36,16 +36,14 @@ function collection_time_booking_activate()
     update_option('collection_time_booking_opening_hours', $default_opening_hours);
 }
 
-
-
 // Add admin settings page
 add_action('admin_menu', 'collection_time_booking_admin_menu');
 
 function collection_time_booking_admin_menu()
 {
     add_menu_page(
-        'Collection Time Settings',
-        'Collection Time',
+        __('Collection Time Settings', 'collection-time-booking'),
+        __('Collection Time', 'collection-time-booking'),
         'manage_options',
         'collection-time-settings',
         'collection_time_booking_settings_page',
@@ -72,7 +70,7 @@ function collection_time_booking_settings_page()
         // Save opening hours to database
         update_option('collection_time_booking_opening_hours', $opening_hours);
 
-        echo '<div class="notice notice-success"><p>Settings saved successfully.</p></div>';
+        echo '<div class="notice notice-success"><p>' . __('Settings saved successfully.', 'collection-time-booking') . '</p></div>';
     }
 
     // Retrieve opening hours from database
@@ -80,7 +78,7 @@ function collection_time_booking_settings_page()
 
     ?>
     <div class="wrap">
-        <h1>Collection Time Settings</h1>
+        <h1><?php _e('Collection Time Settings', 'collection-time-booking'); ?></h1>
 
         <form method="post" action="">
             <?php wp_nonce_field('collection_time_booking_settings', 'collection_time_booking_nonce'); ?>
@@ -95,8 +93,8 @@ function collection_time_booking_settings_page()
                     <tr>
                         <th scope="row"><?php echo ucfirst($day); ?></th>
                         <td>
-                            <input type="text" name="<?php echo $day; ?>_start_time" value="<?php echo $start_time; ?>" placeholder="Opening Time">
-                            <input type="text" name="<?php echo $day; ?>_end_time" value="<?php echo $end_time; ?>" placeholder="Closing Time">
+                            <input type="text" name="<?php echo $day; ?>_start_time" value="<?php echo $start_time; ?>" placeholder="<?php _e('Opening Time', 'collection-time-booking'); ?>">
+                            <input type="text" name="<?php echo $day; ?>_end_time" value="<?php echo $end_time; ?>" placeholder="<?php _e('Closing Time', 'collection-time-booking'); ?>">
                         </td>
                     </tr>
                     <?php
@@ -105,7 +103,7 @@ function collection_time_booking_settings_page()
             </table>
 
             <p class="submit">
-                <input type="submit" name="collection_time_booking_submit" class="button-primary" value="Save Changes">
+                <input type="submit" name="collection_time_booking_submit" class="button-primary" value="<?php _e('Save Changes', 'collection-time-booking'); ?>">
             </p>
         </form>
     </div>
@@ -133,7 +131,7 @@ function collection_time_booking_add_meta_box($checkout)
     $selected_date = '';
     $selected_time = '';
 
-    $time_slots[''] = "Select Collection Time"; //anuj
+    $time_slots[''] = __("Select Collection Time", 'collection-time-booking');
     // Generate time slots based on the opening hours
     for ($time = $start_time; $time < $end_time; $time += $minimum_interval) {
         $time_slots[date('H:i', $time)] = date('h:i A', $time);
@@ -145,8 +143,8 @@ function collection_time_booking_add_meta_box($checkout)
         array(
             'type' => 'text',
             'class' => array('form-row-wide'),
-            'label' => __('Collection Date'),
-            'placeholder' => __('Select date'),
+            'label' => __('Collection Date', 'collection-time-booking'),
+            'placeholder' => __('Select date', 'collection-time-booking'),
             'required' => true,
             'autocomplete' => 'off',
             'custom_attributes' => array(
@@ -162,7 +160,7 @@ function collection_time_booking_add_meta_box($checkout)
         array(
             'type' => 'select',
             'class' => array('form-row-wide'),
-            'label' => __('Collection Time'),
+            'label' => __('Collection Time', 'collection-time-booking'),
             'options' => $time_slots,
             'required' => true,
         ),
@@ -177,9 +175,9 @@ add_action('woocommerce_checkout_process', 'collection_time_booking_validate_col
 function collection_time_booking_validate_collection_datetime()
 {
     if (isset($_POST['collection_date']) && empty($_POST['collection_date'])) {
-        wc_add_notice(__('Please select a collection date.'), 'error');
+        wc_add_notice(__('Please select a collection date.', 'collection-time-booking'), 'error');
     } elseif (isset($_POST['collection_time']) && empty($_POST['collection_time'])) {
-        wc_add_notice(__('Please select a collection time.'), 'error');
+        wc_add_notice(__('Please select a collection time.', 'collection-time-booking'), 'error');
     } else {
         $selected_date = sanitize_text_field($_POST['collection_date']);
         $selected_time = sanitize_text_field($_POST['collection_time']);
@@ -193,7 +191,7 @@ function collection_time_booking_validate_collection_datetime()
 
         // Validate collection time
         if ($selected_datetime < $minimum_collection_datetime) {
-            wc_add_notice(__('Please select a collection time that is at least 2 hours into the future.'), 'error');
+            wc_add_notice(__('Please select a collection time that is at least 2 hours into the future.', 'collection-time-booking'), 'error');
         } else {
             WC()->session->set('selected_collection_date', $selected_date);
             WC()->session->set('selected_collection_time', $selected_time);
@@ -225,8 +223,8 @@ function collection_time_booking_display_admin_order_meta($order)
     $collection_time = $order->get_meta('Collection Time');
     if (!empty($collection_date) && !empty($collection_time)) {
         $collection_datetime = date('Y-m-d H:i', $order->get_meta('Collection DateTime'));
-        echo '<p><strong>Collection Date:</strong> ' . esc_html($collection_date) . '</p>';
-        echo '<p><strong>Collection Time:</strong> ' . esc_html($collection_time) . '</p>';
+        echo '<p><strong>' . __('Collection Date', 'collection-time-booking') . ':</strong> ' . esc_html($collection_date) . '</p>';
+        echo '<p><strong>' . __('Collection Time', 'collection-time-booking') . ':</strong> ' . esc_html($collection_time) . '</p>';
     }
 }
 
@@ -243,21 +241,21 @@ function collection_time_booking_add_collection_datetime_to_email($fields, $sent
 
     if (!empty($collection_date) && !empty($collection_time)) {
         $fields['collection_date'] = array(
-            'label' => __('Collection Date'),
+            'label' => __('Collection Date', 'collection-time-booking'),
             'value' => $collection_date,
         );
         $fields['collection_time'] = array(
-            'label' => __('Collection Time'),
+            'label' => __('Collection Time', 'collection-time-booking'),
             'value' => $collection_time,
         );
 
         if (!empty($pickup_location) && !empty($branch_address)) {
             $fields['pickup_location'] = array(
-                'label' => __('Pickup Location'),
+                'label' => __('Pickup Location', 'collection-time-booking'),
                 'value' => $pickup_location,
             );
             $fields['branch_address'] = array(
-                'label' => __('Branch Address'),
+                'label' => __('Branch Address', 'collection-time-booking'),
                 'value' => $branch_address,
             );
         }
@@ -276,13 +274,12 @@ function collection_time_booking_display_order_received_collection_datetime($ord
 
     if (!empty($collection_date) && !empty($collection_time)) {
         echo '<div class="order-received-collection-datetime">';
-        echo '<h2>Collection Date and Time</h2>';
-        echo '<p><strong>Collection Date:</strong> ' . esc_html($collection_date) . '</p>';
-        echo '<p><strong>Collection Time:</strong> ' . esc_html($collection_time) . '</p>';
+        echo '<h2>' . __('Collection Date and Time', 'collection-time-booking') . '</h2>';
+        echo '<p><strong>' . __('Collection Date', 'collection-time-booking') . ':</strong> ' . esc_html($collection_date) . '</p>';
+        echo '<p><strong>' . __('Collection Time', 'collection-time-booking') . ':</strong> ' . esc_html($collection_time) . '</p>';
         echo '</div>';
     }
 }
-
 
 // Enqueue jQuery UI
 wp_enqueue_script('jquery-ui-core');
@@ -302,7 +299,7 @@ wp_enqueue_script('collection-time-booking-script', plugin_dir_url(__FILE__) . '
 
 // Localize script with the collection time options
 $collection_time_options = array(
-    'curdate' => date("Y-m-d"),   //anuj
+    'curdate' => date("Y-m-d"),
     'timeFormat' => get_option('time_format', 'g:i A'),
     'minDate' => 0, // Minimum date is today
     'minTime' => date('H:i', strtotime('+2 hours')), // Minimum time is 2 hours from now
