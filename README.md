@@ -54,7 +54,7 @@ When an order is placed with a selected collection date and time, the informatio
 
 ## Complementary Plugin: Click and Collect Branches
 
-The Simple Click & Collect for WooCommerce plugin can be complemented by the "Click and Collect Branches" plugin. When used together, the two plugins provide additional functionality for managing pickup locations.
+The Simple Click & Collect for WooCommerce plugin can be complemented by the ["Click and Collect Branches"](https://github.com/kandekore/Simple-Click-and-Collect-Branches-for-WooCommerce) plugin. When used together, the two plugins provide additional functionality for managing pickup locations.
 
 The Click and Collect Branches plugin allows admins to add and manage pickup locations, including branch names and addresses. Customers can then select their preferred pickup location during the checkout process.
 
