@@ -316,9 +316,9 @@ function collection_time_booking_display_admin_order_meta($order)
         echo '<p><strong>Collection Time:</strong> ' . esc_html($collection_time) . '</p>';
     }
 
-    if (!empty($collection_datetime)) {
+   /* if (!empty($collection_datetime)) {
         echo '<p><strong>Collection DateTime:</strong> ' . esc_html(date('l jS F H:i', $collection_datetime)) . '</p>';
-    }
+    }*/
 }
 
 add_action('woocommerce_email_order_details', 'collection_time_booking_add_collection_datetime_to_email', 10, 4);
@@ -329,11 +329,10 @@ function collection_time_booking_add_collection_datetime_to_email($order, $sent_
     if ($order->get_meta('Collection Date') && $order->get_meta('Collection Time')) {
         $collection_date = $order->get_meta('Collection Date');
         $collection_time = $order->get_meta('Collection Time');
-        $collection_datetime = date('d-m-Y H:i', $order->get_meta('Collection DateTime'));
-        
+$collection_datetime = date('d-m-Y H:i', strtotime($order->get_meta('Collection DateTime')));        
         echo '<p><strong>Collection Date:</strong> ' . esc_html($collection_date) . '</p>';
         echo '<p><strong>Collection Time:</strong> ' . esc_html($collection_time) . '</p>';
-        echo '<p><strong>Collection DateTime:</strong> ' . esc_html($collection_datetime) . '</p>';
+      /*  echo '<p><strong>Collection DateTime:</strong> ' . esc_html($collection_datetime) . '</p>';*/
     }
 }
 
@@ -476,9 +475,9 @@ function display_collection_time_on_order_confirmation($order_id) {
         echo '<p><strong>Collection Time:</strong> ' . esc_html($collection_time) . '</p>';
     }
 
-    if (!empty($collection_datetime)) {
+   /* if (!empty($collection_datetime)) {
         echo '<p><strong>Collection DateTime:</strong> ' . esc_html(date('l jS F H:i', $collection_datetime)) . '</p>';
-    }
+    }*/
 
     echo '</div>';
 }
