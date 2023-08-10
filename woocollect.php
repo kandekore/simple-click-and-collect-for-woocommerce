@@ -280,7 +280,7 @@ function collection_time_booking_save_collection_datetime($order)
     }
 
     if (!empty($collection_datetime)) {
-        $order->set_date_created(date('Y-m-d H:i:s', $collection_datetime));
+        $order->set_date_created(date('d-m-Y H:i:s', $collection_datetime));
         $order->update_meta_data('_collection_datetime', $collection_datetime);
     }
 }
@@ -321,23 +321,23 @@ function collection_time_booking_display_admin_order_meta($order)
     }
 }
 
-// Attach collection date and time to the order confirmation email sent to the admin
 add_action('woocommerce_email_order_details', 'collection_time_booking_add_collection_datetime_to_email', 10, 4);
 
 function collection_time_booking_add_collection_datetime_to_email($order, $sent_to_admin, $plain_text, $email)
 {
-    if ($sent_to_admin && $order->get_meta('Collection Date') && $order->get_meta('Collection Time')) {
+    // Check if the order has the 'Collection Date' and 'Collection Time' meta data.
+    if ($order->get_meta('Collection Date') && $order->get_meta('Collection Time')) {
         $collection_date = $order->get_meta('Collection Date');
         $collection_time = $order->get_meta('Collection Time');
-        $collection_datetime = date('Y-m-d H:i', $order->get_meta('Collection DateTime'));
+        $collection_datetime = date('d-m-Y H:i', $order->get_meta('Collection DateTime'));
+        
         echo '<p><strong>Collection Date:</strong> ' . esc_html($collection_date) . '</p>';
         echo '<p><strong>Collection Time:</strong> ' . esc_html($collection_time) . '</p>';
         echo '<p><strong>Collection DateTime:</strong> ' . esc_html($collection_datetime) . '</p>';
     }
 }
 
-// Add custom dashboard widget
-add_action('wp_dashboard_setup', 'collection_time_booking_add_dashboard_widget');
+
 
 // Add admin dashboard widget
 add_action( 'wp_dashboard_setup', 'collection_time_booking_dashboard_widget' );
@@ -360,7 +360,7 @@ function display_future_collection_orders() {
             'relation' => 'AND',
             array(
                 'key' => 'Collection Date',
-                'value' => date("Y-m-d"),
+                'value' => date("d-m-Y"),
                 'compare' => '>=',
                 'type' => 'DATE',
             ),
@@ -379,7 +379,7 @@ function display_future_collection_orders() {
             
             $collection_date = $order->get_meta('Collection Date');            
 
-            if($collection_date!='' && date("Ymd",strtotime($collection_date)) >=date("Ymd")){    
+            if($collection_date!='' && date("d-m-Y",strtotime($collection_date)) >=date("d-m-Y")){    
             
                 //anuj
                 $collection_time = $order->get_meta('Collection Time');
@@ -410,7 +410,7 @@ function enqueue_my_script() {
 $booking_window_hours = get_option('booking_window_hours', 2); // Get booking window hours from settings, default to 2 if not set
 
 $collection_time_options = array(
-    'curdate' => date("Y-m-d"),
+    'curdate' => date("d-m-Y"),
     'timeFormat' => get_option('time_format', 'g:i A'),
     'minDate' => 0, // Minimum date is today
     'minTime' => date('H:i', strtotime('+' . $booking_window_hours . ' hours')), // Minimum time is 'booking_window_hours' hours from now
@@ -456,5 +456,31 @@ function register_collection_time_settings() {
 add_action('admin_init', 'register_collection_time_settings');
 
 
+add_action('woocommerce_thankyou', 'display_collection_time_on_order_confirmation', 10, 1);
+
+function display_collection_time_on_order_confirmation($order_id) {
+    // Get the order object
+    $order = wc_get_order($order_id);
+
+    $collection_date = $order->get_meta('Collection Date');
+    $collection_time = $order->get_meta('Collection Time');
+    $collection_datetime = $order->get_meta('Collection DateTime');
+
+    echo '<div class="order-collection-details">';
+    
+    if (!empty($collection_date)) {
+        echo '<p><strong>Collection Date:</strong> ' . esc_html($collection_date) . '</p>';
+    }
+
+    if (!empty($collection_time)) {
+        echo '<p><strong>Collection Time:</strong> ' . esc_html($collection_time) . '</p>';
+    }
+
+    if (!empty($collection_datetime)) {
+        echo '<p><strong>Collection DateTime:</strong> ' . esc_html(date('l jS F H:i', $collection_datetime)) . '</p>';
+    }
+
+    echo '</div>';
+}
 
 
