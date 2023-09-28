@@ -1,0 +1,10 @@
+option:disabled {
+    color: red;
+}
+span#times {
+    color: red;
+    font-weight: 600;
+}
+p.woocommerce-shipping-destination {
+    display: none;
+}
