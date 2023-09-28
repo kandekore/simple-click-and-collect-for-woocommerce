@@ -288,7 +288,7 @@ add_action('woocommerce_email_order_details', 'collection_time_booking_add_colle
 
 function collection_time_booking_add_collection_datetime_to_email($order, $sent_to_admin, $plain_text, $email)
 {
-    if ($sent_to_admin && $order->get_meta('Collection Date') && $order->get_meta('Collection Time')) {
+    if ($order->get_meta('Collection Date') && $order->get_meta('Collection Time')) {
         $collection_date = $order->get_meta('Collection Date');
         $collection_time = $order->get_meta('Collection Time');
         $collection_datetime = date('d-m-Y H:i', $order->get_meta('Collection DateTime'));
