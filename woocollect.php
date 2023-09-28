@@ -63,9 +63,9 @@ function add_custom_admin_menu() {
     
 }
 
-// Main menu page content
+
 function display_main_menu_content() {
-    // Display content for the main menu page here
+
     echo '<div class="wrap">';
     echo '<h1>Simple Click & Collect for WooCommerce</h1>';
     echo '</div>';
@@ -79,33 +79,43 @@ function display_main_menu_content() {
     echo '<li>On the main menu page, click on the "Collection Time Settings" option.</li>';
     echo '<li>You will see a form with a table displaying the days of the week and corresponding input fields for start and end times.</li>';
     echo '<li>For each day of the week, enter the opening and closing times in the respective input fields. This defines the available collection times for each day.</li>';
+    echo '<li>For days that collection times are not available remove the start and end times.</li>';
     echo '<li>After entering the times for all the days, click the "Save Changes" button to save your settings.</li>';
+    echo '<li>Collection times by default are on the hour every hour and allow a 1 hour window.</li>';
     echo '</ol>';
     echo '</ul>';
     
   
 }
-
-
-
 // Admin settings page
 function display_collection_time_settings()
 {
-    // Save settings if form submitted
-    if (isset($_POST['collection_time_booking_submit'])) {
-        $opening_hours = array();
+    if (!current_user_can('manage_options')) {
+    wp_die(__('You do not have sufficient permissions to access this page.'));
+}
+    // Check if form is submitted and nonce is set
+    if (isset($_POST['collection_time_booking_submit']) && isset($_POST['collection_time_booking_nonce'])) {
         
+        // Verifying the nonce
+        if (!wp_verify_nonce($_POST['collection_time_booking_nonce'], 'collection_time_booking_settings')) {
+            die('Invalid nonce.');
+        }
+
+        $opening_hours = array();
+
         // Loop through days of the week
         foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as $day) {
-            $opening_hours[$day] = array(
-                'start_time' => sanitize_text_field($_POST[$day . '_start_time']),
-                'end_time'   => sanitize_text_field($_POST[$day . '_end_time'])
-            );
+            if (isset($_POST[$day . '_start_time']) && isset($_POST[$day . '_end_time'])) {
+                $opening_hours[$day] = array(
+                    'start_time' => sanitize_text_field($_POST[$day . '_start_time']),
+                    'end_time'   => sanitize_text_field($_POST[$day . '_end_time'])
+                );
+            }
         }
 
         // Save opening hours to database
         update_option('collection_time_booking_opening_hours', $opening_hours);
-        
+
         echo '<div class="notice notice-success"><p>Settings saved successfully.</p></div>';
     }
 
@@ -167,7 +177,7 @@ function collection_time_booking_add_meta_box($checkout)
     $selected_date = '';
     $selected_time = '';
 
-    $time_slots[''] = "Select Collection Time";//anuj
+    $time_slots[''] = "Select Collection Time";
 
     echo '<div id="collection-time-box">';
     woocommerce_form_field(
@@ -209,7 +219,10 @@ add_action('woocommerce_checkout_process', 'collection_time_booking_validate_col
 
 function collection_time_booking_validate_collection_datetime()
 {
-
+  // Check if the nonce is set
+    // if (!isset($_POST['collection_time_booking_nonce']) || !wp_verify_nonce($_POST['collection_time_booking_nonce'], 'collection_time_booking_settings')) {
+    //     die('Invalid nonce.');
+    // }
    
 
         if (isset($_POST['collection_date']) && empty($_POST['collection_date'])) {
@@ -232,6 +245,7 @@ function collection_time_booking_validate_collection_datetime()
 
     }
 }
+
 
 // Save the selected collection date and time to the order
 add_action('woocommerce_checkout_create_order', 'collection_time_booking_save_collection_datetime');
@@ -283,7 +297,7 @@ function collection_time_booking_display_admin_order_meta($order)
 
 }
 
-// Attach collection date and time to the order confirmation email sent to the admin
+// Attach collection date and time to the order confirmation emails
 add_action('woocommerce_email_order_details', 'collection_time_booking_add_collection_datetime_to_email', 10, 4);
 
 function collection_time_booking_add_collection_datetime_to_email($order, $sent_to_admin, $plain_text, $email)
@@ -323,23 +337,14 @@ if (!empty($opening_hours)) {
     
 wp_localize_script('collection-time-booking-script', 'collectionTimeOptions', $collection_time_options);
 
-// Enqueue jQuery UI
+// Enqueue 
 wp_enqueue_script('jquery-ui-core');
 wp_enqueue_script('jquery-ui-datepicker');
 
-// Enqueue jQuery UI CSS
-wp_enqueue_style('jquery-ui-datepicker-css', 'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
-
-// Enqueue time picker JavaScript
-wp_enqueue_script('jquery-ui-timepicker-addon', 'https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-timepicker-addon/1.6.3/jquery-ui-timepicker-addon.min.js', array('jquery-ui-datepicker'), '1.6.3', true);
-
-// Enqueue time picker CSS
-wp_enqueue_style('jquery-ui-timepicker-css', 'https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-timepicker-addon/1.6.3/jquery-ui-timepicker-addon.min.css');
-
-// Enqueue custom JavaScript for initializing date and time pickers
-wp_enqueue_script('collection-time-booking-script', plugin_dir_url(__FILE__) . 'js/collection-time-booking.js', array('jquery-ui-datepicker', 'jquery-ui-timepicker-addon'),'1.19', true);//
-
-// Enqueue css
+wp_enqueue_style('jquery-ui-datepicker-css', plugins_url('assets/jquery-ui.css', __FILE__));
+wp_enqueue_script('jquery-ui-timepicker-addon', plugins_url('assets/jquery-ui-timepicker-addon.min.js', __FILE__), array('jquery-ui-datepicker'), '1.6.3', true);
+wp_enqueue_style('jquery-ui-timepicker-css', plugins_url('assets/jquery-ui-timepicker-addon.min.css', __FILE__));
+wp_enqueue_script('collection-time-booking-script', plugin_dir_url(__FILE__) . 'js/collection-time-booking.js', array('jquery-ui-datepicker', 'jquery-ui-timepicker-addon'),'1.19', true);
 wp_enqueue_style( 'plugin-styles', plugin_dir_url( __FILE__ ) . 'plugin-styles.css' );
 }
 add_action('wp_enqueue_scripts', 'enqueue_my_script');
