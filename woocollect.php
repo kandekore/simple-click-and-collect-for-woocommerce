@@ -210,19 +210,11 @@ add_action('woocommerce_checkout_process', 'collection_time_booking_validate_col
 function collection_time_booking_validate_collection_datetime()
 {
 
-    $current_shipping_method = WC()->session->get('chosen_shipping_methods')[0];
-
-    $current_shipping=array();
-    if($current_shipping_method!=''){
-        $current_shipping=explode(":",$current_shipping_method);
-    }
-    $selected_shipping_methods = get_option('click_collect_shipping_methods', array());
-
-    if(in_array($current_shipping[0],$selected_shipping_methods)){
+   
 
         if (isset($_POST['collection_date']) && empty($_POST['collection_date'])) {
             wc_add_notice(__('Please select a collection date.'), 'error');
-        } elseif (isset($_POST['collection_time']) && empty($_POST['collection_time'])) {
+        } if (isset($_POST['collection_time']) && empty($_POST['collection_time'])) {
             wc_add_notice(__('Please select a collection time.'), 'error');
         } else {
             $selected_date = sanitize_text_field($_POST['collection_date']);
@@ -236,7 +228,7 @@ function collection_time_booking_validate_collection_datetime()
             $minimum_collection_datetime = $current_datetime + $minimum_interval;
 
         
-        }
+        
 
     }
 }
@@ -299,7 +291,7 @@ function collection_time_booking_add_collection_datetime_to_email($order, $sent_
     if ($sent_to_admin && $order->get_meta('Collection Date') && $order->get_meta('Collection Time')) {
         $collection_date = $order->get_meta('Collection Date');
         $collection_time = $order->get_meta('Collection Time');
-        $collection_datetime = date('Y-m-d H:i', $order->get_meta('Collection DateTime'));
+        $collection_datetime = date('d-m-Y H:i', $order->get_meta('Collection DateTime'));
         echo '<p><strong>Collection Date:</strong> ' . esc_html($collection_date) . '</p>';
         echo '<p><strong>Collection Time:</strong> ' . esc_html($collection_time) . '</p>';
     }
@@ -310,6 +302,9 @@ function enqueue_my_script() {
 
     wp_enqueue_script('collection-time-booking-script', plugin_dir_url(__FILE__) . 'js/collection-time-booking.js', array('jquery'), '1.0.0', true);
 
+     wp_localize_script('collection-time-booking-script', 'my_script_vars', array(
+        'selected_shipping_methods' => implode(" , ",$selected_shipping_methods),
+    ));
     
     // Localize script with the collection time options
 $booking_window_hours = get_option('booking_window_hours', 2); // Get booking window hours from settings, default to 2 if not set
