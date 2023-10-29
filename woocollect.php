@@ -10,6 +10,8 @@ License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 Update URI:        https://wordpresswizard.net/clickandcollect
 */
 
+if ( ! defined( 'ABSPATH' ) ) exit;    
+
 // Plugin Activation and Deactivation
 
 register_activation_hook(__FILE__, 'collection_time_booking_activate');
@@ -65,37 +67,33 @@ function add_custom_admin_menu() {
 
 
 function display_main_menu_content() {
-
     echo '<div class="wrap">';
-    echo '<h1>Simple Click & Collect for WooCommerce</h1>';
+    echo '<h1>' . esc_html__('Simple Click & Collect for WooCommerce', 'collection-time-booking') . '</h1>';
     echo '</div>';
-    
-    
-    echo '<h2>Collection Time Settings</h2>';
+
+    echo '<h2>' . esc_html__('Collection Time Settings', 'collection-time-booking') . '</h2>';
     echo '<ul>';
-    echo '<li>The Collection Time Settings allow you to define the opening and closing times for collection on each day of the week. This ensures accurate scheduling of collection times based on your business\'s availability.</li>';
-    echo '<li>Follow these steps to set the opening and closing times:</li>';
+    echo '<li>' . esc_html__('The Collection Time Settings allow you to define the opening and closing times for collection on each day of the week. This ensures accurate scheduling of collection times based on your business\'s availability.', 'collection-time-booking') . '</li>';
+    echo '<li>' . esc_html__('Follow these steps to set the opening and closing times:', 'collection-time-booking') . '</li>';
     echo '<ol>';
-    echo '<li>On the main menu page, click on the "Collection Time Settings" option.</li>';
-    echo '<li>You will see a form with a table displaying the days of the week and corresponding input fields for start and end times.</li>';
-    echo '<li>For each day of the week, enter the opening and closing times in the respective input fields. This defines the available collection times for each day.</li>';
-    echo '<li>For days that collection times are not available remove the start and end times.</li>';
-    echo '<li>After entering the times for all the days, click the "Save Changes" button to save your settings.</li>';
-    echo '<li>Collection times by default are on the hour every hour and allow a 1 hour window.</li>';
+    echo '<li>' . esc_html__('On the main menu page, click on the "Collection Time Settings" option.', 'collection-time-booking') . '</li>';
+    echo '<li>' . esc_html__('You will see a form with a table displaying the days of the week and corresponding input fields for start and end times.', 'collection-time-booking') . '</li>';
+    echo '<li>' . esc_html__('For each day of the week, enter the opening and closing times in the respective input fields. This defines the available collection times for each day.', 'collection-time-booking') . '</li>';
+    echo '<li>' . esc_html__('For days that collection times are not available, remove the start and end times.', 'collection-time-booking') . '</li>';
+    echo '<li>' . esc_html__('After entering the times for all the days, click the "Save Changes" button to save your settings.', 'collection-time-booking') . '</li>';
+    echo '<li>' . esc_html__('Collection times by default are on the hour every hour and allow a 1-hour window.', 'collection-time-booking') . '</li>';
     echo '</ol>';
     echo '</ul>';
-    
-  
 }
-// Admin settings page
+
 function display_collection_time_settings()
 {
     if (!current_user_can('manage_options')) {
-    wp_die(__('You do not have sufficient permissions to access this page.'));
-}
+        wp_die(__('You do not have sufficient permissions to access this page.'));
+    }
+
     // Check if form is submitted and nonce is set
     if (isset($_POST['collection_time_booking_submit']) && isset($_POST['collection_time_booking_nonce'])) {
-        
         // Verifying the nonce
         if (!wp_verify_nonce($_POST['collection_time_booking_nonce'], 'collection_time_booking_settings')) {
             die('Invalid nonce.');
@@ -116,15 +114,15 @@ function display_collection_time_settings()
         // Save opening hours to database
         update_option('collection_time_booking_opening_hours', $opening_hours);
 
-        echo '<div class="notice notice-success"><p>Settings saved successfully.</p></div>';
+        echo '<div class="notice notice-success"><p>' . esc_html('Settings saved successfully.', 'collection-time-booking') . '</p></div>';
     }
 
-    // Retrieve opening hours from database
+    // Retrieve opening hours from the database
     $opening_hours = get_option('collection_time_booking_opening_hours', array());
 
     ?>
     <div class="wrap">
-        <h1>Collection Time Settings</h1>
+        <h1><?php esc_html_e('Collection Time Settings', 'collection-time-booking'); ?></h1>
 
         <form method="post" action="">
             <?php wp_nonce_field('collection_time_booking_settings', 'collection_time_booking_nonce'); ?>
@@ -137,10 +135,10 @@ function display_collection_time_settings()
                     $end_time = isset($opening_hours[$day]['end_time']) ? esc_attr($opening_hours[$day]['end_time']) : '';
                     ?>
                     <tr>
-                        <th scope="row"><?php echo ucfirst($day); ?></th>
+                        <th scope="row"><?php echo esc_html(ucfirst($day)); ?></th>
                         <td>
-                            <input type="text" name="<?php echo $day; ?>_start_time" value="<?php echo $start_time; ?>" placeholder="Opening Time">
-                            <input type="text" name="<?php echo $day; ?>_end_time" value="<?php echo $end_time; ?>" placeholder="Closing Time">
+                            <input type="text" name="<?php echo esc_attr($day); ?>_start_time" value="<?php echo esc_attr($start_time); ?>" placeholder="<?php esc_attr_e('Opening Time', 'collection-time-booking'); ?>">
+                            <input type="text" name="<?php echo esc_attr($day); ?>_end_time" value="<?php echo esc_attr($end_time); ?>" placeholder="<?php esc_attr_e('Closing Time', 'collection-time-booking'); ?>">
                         </td>
                     </tr>
                     <?php
@@ -149,7 +147,7 @@ function display_collection_time_settings()
             </table>
 
             <p class="submit">
-                <input type="submit" name="collection_time_booking_submit" class="button-primary" value="Save Changes">
+                <input type="submit" name="collection_time_booking_submit" class="button-primary" value="<?php esc_attr_e('Save Changes', 'collection-time-booking'); ?>">
             </p>
         </form>
     </div>
@@ -218,12 +216,7 @@ function collection_time_booking_add_meta_box($checkout)
 add_action('woocommerce_checkout_process', 'collection_time_booking_validate_collection_datetime');
 
 function collection_time_booking_validate_collection_datetime()
-{
-  // Check if the nonce is set
-    // if (!isset($_POST['collection_time_booking_nonce']) || !wp_verify_nonce($_POST['collection_time_booking_nonce'], 'collection_time_booking_settings')) {
-    //     die('Invalid nonce.');
-    // }
-   
+{   
 
         if (isset($_POST['collection_date']) && empty($_POST['collection_date'])) {
             wc_add_notice(__('Please select a collection date.'), 'error');
@@ -283,19 +276,26 @@ add_action('woocommerce_admin_order_data_after_billing_address', 'collection_tim
 
 function collection_time_booking_display_admin_order_meta($order)
 {
+   
+    if (!is_a($order, 'WC_Order')) {
+        return; 
+    }
+
+    // Get metadata
     $collection_date = $order->get_meta('Collection Date');
     $collection_time = $order->get_meta('Collection Time');
-    $collection_datetime = $order->get_meta('Collection DateTime');
-    
+
     if (!empty($collection_date)) {
-        echo '<p><strong>Collection Date:</strong> ' . esc_html($collection_date) . '</p>';
+        echo '<p><strong>' . esc_html__('Collection Date:') . '</strong> ' . esc_html($collection_date) . '</p>';
     }
 
     if (!empty($collection_time)) {
-        echo '<p><strong>Collection Time:</strong> ' . esc_html($collection_time) . '</p>';
+        echo '<p><strong>' . esc_html__('Collection Time:') . '</strong> ' . esc_html($collection_time) . '</p>';
     }
 
+  
 }
+
 
 // Attach collection date and time to the order confirmation emails
 add_action('woocommerce_email_order_details', 'collection_time_booking_add_collection_datetime_to_email', 10, 4);
@@ -305,9 +305,9 @@ function collection_time_booking_add_collection_datetime_to_email($order, $sent_
     if ($order->get_meta('Collection Date') && $order->get_meta('Collection Time')) {
         $collection_date = $order->get_meta('Collection Date');
         $collection_time = $order->get_meta('Collection Time');
-        $collection_datetime = date('d-m-Y H:i', $order->get_meta('Collection DateTime'));
         echo '<p><strong>Collection Date:</strong> ' . esc_html($collection_date) . '</p>';
         echo '<p><strong>Collection Time:</strong> ' . esc_html($collection_time) . '</p>';
+        
     }
 }
 
