@@ -3,11 +3,10 @@
 Plugin Name: Simple click & Collect for WooCommerce
 Description: Collection time plugin for WooCommerce orders
 Version: 1.0
-Author: Darren Kandekore
+Author: Kandeshop
 Author URI: https://darrenk.uk
 License: GPL v2 or later
-License URI:       https://www.gnu.org/licenses/gpl-2.0.html
-Update URI:        https://wordpresswizard.net/clickandcollect
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 */
 
 if ( ! defined( 'ABSPATH' ) ) exit;    
