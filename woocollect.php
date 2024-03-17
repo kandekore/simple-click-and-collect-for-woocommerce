@@ -13,10 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 // Plugin Activation and Deactivation
 
-register_activation_hook(__FILE__, 'collection_time_booking_activate');
-register_deactivation_hook(__FILE__, 'collection_time_booking_deactivate');
+register_activation_hook(__FILE__, 'scwc_collection_time_booking_activate');
+register_deactivation_hook(__FILE__, 'scwc_collection_time_booking_deactivate');
 
-function collection_time_booking_activate()
+function scwc_collection_time_booking_activate()
 {
     // Check if WooCommerce is active
     if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_option('active_plugins')))) {
@@ -39,9 +39,9 @@ function collection_time_booking_activate()
 }
 
 // Add admin settings page
-add_action('admin_menu', 'add_custom_admin_menu');
+add_action('admin_menu', 'scwc_add_custom_admin_menu');
 
-function add_custom_admin_menu() {
+function scwc_add_custom_admin_menu() {
     add_menu_page(
         'Woo Click & Collect', 
         'Woo Click & Collect', 
@@ -65,7 +65,7 @@ function add_custom_admin_menu() {
 }
 
 
-function display_main_menu_content() {
+function scwc_display_main_menu_content() {
     echo '<div class="wrap">';
     echo '<h1>' . esc_html__('Simple Click & Collect for WooCommerce', 'collection-time-booking') . '</h1>';
     echo '</div>';
@@ -85,16 +85,19 @@ function display_main_menu_content() {
     echo '</ul>';
 }
 
-function display_collection_time_settings()
+function scwc_display_collection_time_settings()
 {
     if (!current_user_can('manage_options')) {
         wp_die(__('You do not have sufficient permissions to access this page.'));
     }
 
     // Check if form is submitted and nonce is set
-    if (isset($_POST['collection_time_booking_submit']) && isset($_POST['collection_time_booking_nonce'])) {
+    if (isset($_POST['scwc_collection_time_booking_submit']) && isset($_POST['scwc_collection_time_booking_nonce'])) {
         // Verifying the nonce
-        if (!wp_verify_nonce($_POST['collection_time_booking_nonce'], 'collection_time_booking_settings')) {
+        // if (!wp_verify_nonce($_POST['collection_time_booking_nonce'], 'collection_time_booking_settings')) {
+        //     die('Invalid nonce.');
+        // }
+        if (!isset($_POST['scwc_collection_time_booking_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['scwc_collection_time_booking_nonce'])), 'scwc_collection_time_booking_settings')) {
             die('Invalid nonce.');
         }
 
@@ -154,9 +157,9 @@ function display_collection_time_settings()
 }
 
 // Add custom meta box to checkout page
-add_action('woocommerce_before_order_notes', 'collection_time_booking_add_meta_box');
+add_action('woocommerce_before_order_notes', 'scwc_collection_time_booking_add_meta_box');
 
-function collection_time_booking_add_meta_box($checkout)
+function scwc_collection_time_booking_add_meta_box($checkout)
 {
     $opening_hours = get_option('collection_time_booking_opening_hours', array());
     
@@ -212,9 +215,9 @@ function collection_time_booking_add_meta_box($checkout)
     WC()->session->set('selected_collection_time', $selected_time);
 }
 // Validate collection date and time before placing the order
-add_action('woocommerce_checkout_process', 'collection_time_booking_validate_collection_datetime');
+add_action('woocommerce_checkout_process', 'scwc_collection_time_booking_validate_collection_datetime');
 
-function collection_time_booking_validate_collection_datetime()
+function scwc_collection_time_booking_validate_collection_datetime()
 {   
 
         if (isset($_POST['collection_date']) && empty($_POST['collection_date'])) {
@@ -240,40 +243,36 @@ function collection_time_booking_validate_collection_datetime()
 
 
 // Save the selected collection date and time to the order
-add_action('woocommerce_checkout_create_order', 'collection_time_booking_save_collection_datetime');
+add_action('woocommerce_checkout_create_order', 'scwc_collection_time_booking_save_collection_datetime');
 
-function collection_time_booking_save_collection_datetime($order)
-{
+function scwc_collection_time_booking_save_collection_datetime($order) {
     $collection_date = isset($_POST['collection_date']) ? sanitize_text_field($_POST['collection_date']) : '';
     $collection_time = isset($_POST['collection_time']) ? sanitize_text_field($_POST['collection_time']) : '';
-    $collection_datetime = strtotime($collection_date . ' ' . $collection_time);
 
     if (!empty($collection_date)) {
-        $order->update_meta_data('Collection Date', $collection_date);
+        $order->update_meta_data('Collection Date', esc_html($collection_date));
     }
 
     if (!empty($collection_time)) {
-        $order->update_meta_data('Collection Time', $collection_time);
+        $order->update_meta_data('Collection Time', esc_html($collection_time));
     }
-
-
 }
 
 
 // Add Meta to email
 
-function  collection_time_booking_order_email( $fields ) {
+function  scwc_collection_time_booking_order_email( $fields ) {
     $fields['Collection Date'] = __('Collection Date', 'your-domain');
     $fields['Collection Time'] = __('Collection Time', 'your-domain');
     return $fields;
 }
-add_filter( 'woocommerce_email_order_meta_fields', 'collection_time_booking_order_email' );
+add_filter( 'woocommerce_email_order_meta_fields', 'scwc_collection_time_booking_order_email' );
 
 
 // Display the selected collection date and time in the admin order page
-add_action('woocommerce_admin_order_data_after_billing_address', 'collection_time_booking_display_admin_order_meta', 10, 1);
+add_action('woocommerce_admin_order_data_after_billing_address', 'scwc_collection_time_booking_display_admin_order_meta', 10, 1);
 
-function collection_time_booking_display_admin_order_meta($order)
+function scwc_collection_time_booking_display_admin_order_meta($order)
 {
    
     if (!is_a($order, 'WC_Order')) {
@@ -297,9 +296,9 @@ function collection_time_booking_display_admin_order_meta($order)
 
 
 // Attach collection date and time to the order confirmation emails
-add_action('woocommerce_email_order_details', 'collection_time_booking_add_collection_datetime_to_email', 10, 4);
+add_action('woocommerce_email_order_details', 'scwc_collection_time_booking_add_collection_datetime_to_email', 10, 4);
 
-function collection_time_booking_add_collection_datetime_to_email($order, $sent_to_admin, $plain_text, $email)
+function scwc_collection_time_booking_add_collection_datetime_to_email($order, $sent_to_admin, $plain_text, $email)
 {
     if ($order->get_meta('Collection Date') && $order->get_meta('Collection Time')) {
         $collection_date = $order->get_meta('Collection Date');
@@ -311,7 +310,7 @@ function collection_time_booking_add_collection_datetime_to_email($order, $sent_
 }
 
 
-function enqueue_my_script() {
+function scwc_enqueue_my_script() {
 
     wp_enqueue_script('collection-time-booking-script', plugin_dir_url(__FILE__) . 'js/collection-time-booking.js', array('jquery'), '1.0.0', true);
 
@@ -346,17 +345,17 @@ wp_enqueue_style('jquery-ui-timepicker-css', plugins_url('assets/jquery-ui-timep
 wp_enqueue_script('collection-time-booking-script', plugin_dir_url(__FILE__) . 'js/collection-time-booking.js', array('jquery-ui-datepicker', 'jquery-ui-timepicker-addon'),'1.19', true);
 wp_enqueue_style( 'plugin-styles', plugin_dir_url( __FILE__ ) . 'plugin-styles.css' );
 }
-add_action('wp_enqueue_scripts', 'enqueue_my_script');
+add_action('wp_enqueue_scripts', 'scwc_enqueue_my_script');
 
 
-add_action('admin_init', 'register_booking_window_settings');
+add_action('admin_init', 'scwc_register_booking_window_settings');
 
-function register_booking_window_settings() {
+function scwc_register_booking_window_settings() {
     register_setting('booking_window_settings', 'booking_window_hours');
 }
 
-function register_collection_time_settings() {
-    register_setting('collection_time_settings', 'booking_window_hours');
-    register_setting('collection_time_booking_settings', 'collection_time_booking_opening_hours');
+function scwc_register_collection_time_settings() {
+    register_setting('scwc_collection_time_settings', 'scwc_booking_window_hours');
+    register_setting('scwc_collection_time_booking_settings', 'scwc_collection_time_booking_opening_hours');
 }
-add_action('admin_init', 'register_collection_time_settings');
+add_action('admin_init', 'scwc_register_collection_time_settings');
