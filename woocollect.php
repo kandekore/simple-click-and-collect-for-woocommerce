@@ -47,7 +47,7 @@ function scwc_add_custom_admin_menu() {
         'Woo Click & Collect', 
         'manage_options', 
         'woo-click-collect', 
-        'display_main_menu_content', 
+        'scwc_display_main_menu_content', 
         'dashicons-cart', 
         30
     );
@@ -59,7 +59,7 @@ function scwc_add_custom_admin_menu() {
         'Collection Time', 
         'manage_options', 
         'collection-time-settings', 
-        'display_collection_time_settings'
+        'scwc_display_collection_time_settings'
     );
     
 }
@@ -94,9 +94,7 @@ function scwc_display_collection_time_settings()
     // Check if form is submitted and nonce is set
     if (isset($_POST['scwc_collection_time_booking_submit']) && isset($_POST['scwc_collection_time_booking_nonce'])) {
         // Verifying the nonce
-        // if (!wp_verify_nonce($_POST['collection_time_booking_nonce'], 'collection_time_booking_settings')) {
-        //     die('Invalid nonce.');
-        // }
+    
         if (!isset($_POST['scwc_collection_time_booking_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['scwc_collection_time_booking_nonce'])), 'scwc_collection_time_booking_settings')) {
             die('Invalid nonce.');
         }
